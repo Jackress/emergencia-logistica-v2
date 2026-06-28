@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -121,43 +121,6 @@ function Leyenda({ filtroActivo, onToggle }) {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-export default function MapaScreen({ ciudadUsuario }) {
-  const ciudadInicial = ciudadUsuario || "Valencia, Carabobo";
-  const centroInicial = CIUDAD_COORDS[ciudadInicial] || [10.1622, -67.9897];
-  const [ciudadFiltro, setCiudadFiltro] = useState(ciudadInicial);
-  const [centroMapa, setCentroMapa] = useState(centroInicial);
-  const [filtroCateg, setFiltroCateg] = useState(null);
-  const [modoReportar, setModoReportar] = useState(false);
-  const [latlngClick, setLatlngClick] = useState(null);
-  const mapRef = useRef(null); // Añadido para controlar el mapa
-
-  const { data: alertas, loading, refetch } = useAlertas(ciudadFiltro);
-  const alertasFiltradas = filtroCateg ? alertas.filter(a => a.categoria === filtroCateg) : alertas;
-
-  return (
-    <div style={{ position:"relative", height:"calc(100vh - 110px)", overflow:"hidden" }}>
-      <div style={{ position:"absolute", top:0, left:0, right:0, zIndex:1000, background:"rgba(255,255,255,0.95)", padding:"10px 12px", display:"flex", gap:8, alignItems:"center", borderBottom:`1px solid ${C.grisClaro}` }}>
-        <input value={ciudadFiltro} onChange={e => setCiudadFiltro(e.target.value)} placeholder="📍 Ciudad..." style={{ flex:1, padding:"7px 10px", borderRadius:8, border:`1.5px solid ${C.grisBorde}` }} />
-        
-        {/* BOTÓN UBICARME */}
-        <button onClick={() => mapRef.current?.locate()} style={{ padding:"7px 12px", borderRadius:8, border:"none", background:C.azul, color:"#fff", cursor:"pointer" }}>📍</button>
-        
-        <button onClick={() => setModoReportar(r => !r)} style={{ padding:"7px 12px", borderRadius:8, border:"none", background: modoReportar ? C.rojo : C.naranja, color:"#fff" }}>➕</button>
-      </div>
-
-      <MapContainer center={centroInicial} zoom={13} style={{ width:"100%", height:"100%", paddingTop:48 }} zoomControl={false} ref={mapRef}>
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <LocationMarker />
-        <MapController center={centroMapa} />
-        <ClickCapturar activo={modoReportar} onClic={setLatlngClick} />
-        {alertasFiltradas.map(a => <Marker key={a.id} position={[a.lat, a.lng]} icon={crearIcono(a.categoria)} />)}
-      </MapContainer>
-
-      {latlngClick && <PanelReportar latlng={latlngClick} onCerrar={() => setLatlngClick(null)} onExito={() => { setLatlngClick(null); refetch(); }} />}
     </div>
   );
 }
