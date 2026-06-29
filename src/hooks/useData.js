@@ -20,17 +20,20 @@ export function useAlertas(ciudad) {
       .select("*")
       .order("created_at", { ascending: false });
     
-    // Filtro por ciudad (asegurando limpieza de string)
-    if (ciudad) {
+    // Filtro flexible: si ciudad viene vacío, trae todo. 
+    // Si trae algo, busca que contenga el texto.
+    if (ciudad && ciudad.trim() !== "") {
       const ciudadLimpia = ciudad.split(",")[0].trim();
       q = q.ilike("ciudad", `%${ciudadLimpia}%`);
     }
     
     const { data: rows, error } = await q;
     
-    // DEBUG CRÍTICO: Si no ves marcadores, mira esto en la consola F12
-    if (error) console.error("Error cargando alertas:", error);
-    console.log("Datos recibidos de Supabase:", rows); 
+    if (error) {
+      console.error("Error cargando alertas desde Supabase:", error);
+    } else {
+      console.log("Alertas cargadas exitosamente:", rows);
+    }
     
     setData(rows || []);
     setLoading(false);
@@ -54,14 +57,13 @@ export async function reportarAlerta({ lat, lng, categoria, titulo, descripcion,
   
   const { data: { user } } = await supabase.auth.getUser();
   
-  // Aseguramos que lat/lng sean números
   const { data, error } = await supabase.from("alertas_mapa").insert({
     lat: Number(lat), 
     lng: Number(lng), 
     categoria, 
     titulo, 
     descripcion,
-    ciudad: ciudad, 
+    ciudad: ciudad || "Valencia", // Valor por defecto si viene vacío
     reportado_por: user?.id || null,
     fuente: "APP",
     expira_en: new Date(Date.now() + expiraHoras * 3600000).toISOString(),
@@ -84,7 +86,7 @@ export function useEquipos(ciudad) {
       .eq("disponible", true)
       .order("created_at", { ascending: false });
     
-    if (ciudad) q = q.ilike("ciudad", `%${ciudad.split(",")[0].trim()}%`);
+    if (ciudad && ciudad.trim() !== "") q = q.ilike("ciudad", `%${ciudad.split(",")[0].trim()}%`);
     
     const { data: rows } = await q;
     setData(rows || []);
@@ -110,7 +112,7 @@ export function useOfertas(rol, ciudad, tiposFiltro = []) {
       .order("created_at", { ascending: false });
     
     if (tiposFiltro.length > 0) q = q.in("tipo_solicitud", tiposFiltro);
-    if (ciudad) q = q.ilike("ciudad", `%${ciudad.split(",")[0].trim()}%`);
+    if (ciudad && ciudad.trim() !== "") q = q.ilike("ciudad", `%${ciudad.split(",")[0].trim()}%`);
     
     const { data: rows } = await q;
     setData(rows || []);
@@ -131,7 +133,7 @@ export async function publicarOferta({ tipoSolicitud, descripcion, pagoOfrecido,
     tipo_solicitud: tipoSolicitud,
     descripcion, 
     pago_ofrecido: pagoOfrecido,
-    ciudad: ciudad,
+    ciudad: ciudad || "Valencia",
     urgente,
     ...(personasRequeridas ? { personas_requeridas: Number(personasRequeridas) } : {}),
   });
