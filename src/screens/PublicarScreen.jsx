@@ -30,7 +30,7 @@ export default function PublicarScreen({ onPublicado }) {
         tipoSolicitud: tipo,
         descripcion: desc,
         pagoOfrecido: pago,
-        ciudadEstado: ciudad,
+        ciudad_estado: ciudad, // <-- CAMBIADO: Coincide con tu base de datos
         urgente,
         personasRequeridas: personas || undefined,
       });
