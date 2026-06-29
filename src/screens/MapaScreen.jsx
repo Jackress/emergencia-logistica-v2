@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { C } from "../lib/constants.js";
 import { useAlertas, reportarAlerta } from "../hooks/useData.js";
 import { Btn, Alert } from "../components/UI.jsx";
 
-// FIX: Íconos de Leaflet
+// FIX: Íconos de Leaflet para Vite
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -30,6 +29,9 @@ function AutoLocate() {
   const map = useMap();
   useEffect(() => {
     map.locate({ setView: true, maxZoom: 16 });
+    map.on("locationfound", (e) => {
+      L.circleMarker(e.latlng, { radius: 8, color: 'blue', fillColor: '#3388ff', fillOpacity: 0.5 }).addTo(map);
+    });
   }, [map]);
   return null;
 }
@@ -42,23 +44,21 @@ function crearIcono(categoria) {
 
 export default function MapaScreen({ ciudadUsuario }) {
   const mapRef = useRef(null);
-  const [ciudadFiltro, setCiudadFiltro] = useState(ciudadUsuario || "Valencia, Carabobo");
   const [modoReportar, setModoReportar] = useState(false);
   const [latlngClick, setLatlngClick] = useState(null);
-  const { data: alertas, refetch } = useAlertas(ciudadFiltro);
+  const { data: alertas, refetch } = useAlertas(ciudadUsuario || "Valencia");
 
   function MapClickHandler() {
-    useMapEvents({ click: (e) => { if (modoReportar) setLatlngClick(e.latlng); } });
+    useMapEvents({ click: (e) => { if (modoReportar) { setLatlngClick(e.latlng); setModoReportar(false); } } });
     return null;
   }
 
   return (
-    <div style={{ position: "relative", height: "calc(100vh - 110px)" }}>
-      {/* Barra superior */}
-      <div style={{ position: "absolute", top: 10, left: 10, zIndex: 1000, display: "flex", gap: 5, background: "white", padding: 5, borderRadius: 8 }}>
-        <input value={ciudadFiltro} onChange={e => setCiudadFiltro(e.target.value)} style={{ padding: 8 }} />
-        <button onClick={() => mapRef.current?.locate()}>📍</button>
-        <button onClick={() => setModoReportar(!modoReportar)} style={{ background: modoReportar ? "red" : "orange", color: "white" }}>➕</button>
+    <div style={{ position: "relative", height: "100vh" }}>
+      {/* Controles */}
+      <div style={{ position: "absolute", top: 15, left: 15, zIndex: 1000, display: "flex", gap: 10 }}>
+        <button onClick={() => mapRef.current?.locate()} style={{ padding: "10px", borderRadius: 8, border: "none", boxShadow: "0 2px 5px rgba(0,0,0,0.3)" }}>📍</button>
+        <button onClick={() => setModoReportar(!modoReportar)} style={{ padding: "10px", borderRadius: 8, border: "none", background: modoReportar ? "red" : "orange", color: "white" }}>➕ Reportar</button>
       </div>
 
       <MapContainer center={[10.1622, -67.9897]} zoom={13} style={{ height: "100%", width: "100%" }} ref={mapRef}>
@@ -68,20 +68,18 @@ export default function MapaScreen({ ciudadUsuario }) {
         {alertas.map(a => (
           <Marker key={a.id} position={[a.lat, a.lng]} icon={crearIcono(a.categoria)}>
             <Popup>
-              <div>
-                <strong>{a.titulo}</strong><br/>{a.descripcion}<br/>
-                <a href={`https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}`} target="_blank" rel="noopener noreferrer">🚗 Cómo llegar</a>
-              </div>
+              <strong>{a.titulo}</strong><p>{a.descripcion}</p>
+              <a href={`https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "blue", color: "white", padding: 5, textAlign: "center", borderRadius: 5 }}>🚗 Cómo llegar</a>
             </Popup>
           </Marker>
         ))}
       </MapContainer>
 
       {latlngClick && (
-        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20, zIndex: 1100, background: "white", padding: 20, borderRadius: 10 }}>
-          <h4>Nuevo Reporte en {latlngClick.lat.toFixed(4)}, {latlngClick.lng.toFixed(4)}</h4>
-          <button onClick={() => { /* Lógica de reportarAlerta aquí */ setLatlngClick(null); setModoReportar(false); }}>Guardar Reporte</button>
-          <button onClick={() => setLatlngClick(null)}>Cancelar</button>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1100, background: "white", padding: 20, borderRadius: "20px 20px 0 0" }}>
+          <h4>Reportar en: {latlngClick.lat.toFixed(4)}, {latlngClick.lng.toFixed(4)}</h4>
+          <Btn onClick={() => { /* Lógica de reportarAlerta */ setLatlngClick(null); refetch(); }}>Confirmar Reporte</Btn>
+          <button onClick={() => setLatlngClick(null)} style={{ marginLeft: 10 }}>Cancelar</button>
         </div>
       )}
     </div>
